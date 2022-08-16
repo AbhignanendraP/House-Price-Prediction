@@ -1,0 +1,345 @@
+---
+title: "FDA project"
+subtitle: "House Price Prediction"
+author: "19BCE1677_Penugonda Abhignanendra----19BCE1671_P.S.R.D.Veenadhari"
+output: html_document
+---
+##### Inserting libraries 
+```{r,echo=FALSE}
+library(ggplot2)
+library(dummies)
+library(descr)
+library(gridExtra)
+library(ggpubr)
+library(ggcorrplot)
+library(caret)
+library(party)
+library(randomForest)
+library(e1071)
+```
+
+##### Loading the dataset
+```{r ,echo=TRUE}
+data<-read.csv("C:/Abhi notes/class3-1/FDA/project/House_Price.csv",header=TRUE)
+dataset<-data
+print(head(dataset))
+summary(dataset)
+```
+##### Removing the outlines for hotel rooms column
+```{r ,echo=TRUE}
+quantile(dataset$n_hot_rooms,0.99)
+uv<-3*quantile(dataset$n_hot_rooms,0.99)
+dataset$n_hot_rooms[dataset$n_hot_rooms>uv]<-uv
+summary(dataset$n_hot_rooms) 
+
+```
+##### Removing the outlines for crime rate column
+```{r,echo=TRUE}
+quantile(dataset$crime_rate,0.80)
+uv<-3*quantile(dataset$crime_rate,0.80)
+dataset$crime_rate[dataset$crime_rate>uv]<-uv
+summary(dataset$crime_rate) 
+```
+
+##### Removing the outlines for rainfall column
+```{r,echo=TRUE}
+quantile(dataset$rainfall,0.01)
+lv<-0.3*quantile(dataset$rainfall,0.01)
+dataset$rainfall[dataset$rainfall<lv]<-lv
+summary(dataset$rainfall)
+```
+
+```{r,echo=TRUE}
+for(i in colnames(dataset)){
+  if(sum(is.na(dataset[i]))!=0){
+    print(i)
+  }
+} 
+
+print(sum(is.na(dataset$n_hos_beds[1:length(dataset$n_hos_beds)])))
+
+mean(dataset$n_hos_beds,na.rm = TRUE)
+dataset$n_hos_beds[is.na(dataset$n_hos_beds)] <- mean(dataset$n_hos_beds,na.rm = TRUE)
+print(sum(is.na(dataset$n_hos_beds[1:length(dataset$n_hos_beds)])))
+```
+
+```{r,echo=TRUE}
+print(typeof(dataset$airport))
+print(unique(dataset[13]))
+print(typeof(dataset$waterbody))
+print(unique(dataset[16]))
+print(typeof(dataset$bus_ter))
+print(unique(dataset[18]))
+```
+
+#### *Data Visualization*
+```{r,echo=TRUE}
+ggplot((dataset),aes(airport))+geom_bar(aes(fill = airport))+scale_fill_brewer(palette = "Blues") +labs(y="freq", title="bar Chart of Airport")
+
+```
+
+```{r,echo=TRUE}
+ggplot((dataset),aes(waterbody))+geom_bar(aes(fill = airport))+scale_fill_brewer(palette = "Reds") +labs(y="freq", title="bar Chart of Water Body")
+
+```
+
+
+```{r,echo=TRUE}
+ggplot((dataset),aes(bus_ter ))+geom_bar(aes(fill = bus_ter))+scale_fill_brewer(palette = "Greens") +labs(x="bus terminal",y="freq", title="bar Chart of Bus stop ")
+
+```
+
+```{r,echo=TRUE}
+dataset<-dataset[-18]
+
+```
+
+#####converting chategorical data into numeric data
+```{r,echo=TRUE}
+dataframe2 <-dummy.data.frame(dataset)
+summary(dataframe2)
+dataframe2 <-dataframe2[,-13]
+dataframe2 <-dataframe2[,-18]
+summary(dataframe2)
+```
+
+```{r,echo=TRUE}
+hist(dataframe2$room_num,main="histogram of Room",xlab="no of rooms",ylab="frequency",col="red")
+```
+
+```{r,echo=TRUE}
+hist(dataframe2$rainfall,main="histogram of Rain fall",xlab="rainfall",ylab="frequency",col="orange")
+
+```
+
+```{r,echo=TRUE}
+hist(dataframe2$age,main="histogram of Age",xlab="Age",ylab="frequency",col="yellow")
+
+```
+```{r,echo=TRUE}
+hist(dataframe2$price,main="histogram of Price",xlab="Price",ylab="frequency",col="green")
+```
+```{r,echo=TRUE}
+ggplot((dataframe2),aes(air_qual,price,color=price))+geom_point(position = "jitter")+labs(x="air quality",y="price", title="Air quality vs price")
+
+```
+
+```{r,echo=TRUE}
+ggplot((dataframe2),aes(poor_prop,price,color=price))+geom_point(position = "jitter")+labs(x="poor population",y="price", title="Poor population vs price")
+```
+
+```{r,echo=TRUE}
+ggplot((dataframe2),aes(n_hos_beds,price,color=price))+geom_point(position = "jitter")+labs(x="no of hospital beds",y="price", title="Hospital beds vs price")
+
+```
+
+```{r,echo=TRUE}
+ggplot((dataframe2),aes(n_hot_rooms,price,color=price))+geom_point(position = "jitter")+labs(x="no of hotel rooms ",y="price", title="Hotel rooms vs price")
+```
+
+```{r,echo=TRUE}
+ggplot(dataframe2,aes(waterbodyRiver,price,color=price))+geom_count(color="green")
+```
+
+```{r,echo=TRUE}
+ggplot((dataset),aes(airport,price,color=price))+geom_point(position = "jitter")
+```
+
+```{r,echo=TRUE}
+ggplot((dataset),aes(waterbody,price,color=price))+geom_count()+ scale_radius(range = c(1,20))
+
+```
+
+```{r,echo=TRUE}
+crosstab(dataset$airport,dataset$waterbody)
+
+```
+
+```{r,echo=TRUE}
+dataframe3<-dataframe2
+dataframe3<-dataframe3[-18]
+dataframe3<-dataframe3[-17]
+dataframe3<-dataframe3[-16]
+dataframe3<-dataframe3[-15]
+dataframe3<-dataframe3[-14]
+dataframe3<-dataframe3[-13]
+dataframe3<-dataframe3[-12]
+dataframe3<-dataframe3[-10]
+dataframe3<-dataframe3[-9]
+dataframe3<-dataframe3[-8]
+dataframe3<-dataframe3[-7]
+dataframe3<-dataframe3[-4]
+```
+
+```{r,echo=TRUE}
+png("C:/Abhi notes/class3-1/FDA/project/newgraph.png")
+layout(matrix(1:36,6,6,byrow=TRUE))
+plot(dataframe3)
+dev.off()
+plot(dataframe3)
+```
+
+```{r,echo=TRUE}
+png("C:/Abhi notes/class3-1/FDA/project/co-realtion.png")
+cor(na.omit(dataframe2))
+ggcorrplot(round(cor(na.omit(dataframe2)),2))
+dev.off()
+ggcorrplot(round(cor(na.omit(dataframe2)),2))
+```
+
+```{r,echo=TRUE}
+png("C:/Abhi notes/class3-1/FDA/project/co-realtion-with_values.png")
+ggcorrplot(round(cor(na.omit(dataframe2)),2),lab=TRUE)
+dev.off()
+ggcorrplot(round(cor(na.omit(dataframe2)),2),lab=TRUE)
+```
+```{r,echo=TRUE}
+df<-sort(sample(nrow(dataframe2),nrow(dataframe2)*0.7))
+train_data<-dataframe2[df,]
+test_data<-dataframe2[-df,]
+
+```
+
+```{r,echo=TRUE}
+RSQUARE = function(y_actual,y_predict){
+  cor(y_actual,y_predict)^2
+}
+MAPE = function(y_actual,y_predict){
+  mean(abs((y_actual-y_predict)/y_actual))*100
+}
+```
+
+
+```{r,echo=TRUE}
+lmvalues<-lm(price~.,data=train_data)
+summary(lmvalues)
+dataframe3=dataframe2[,c(1,4,5,11,12,13,14)]
+df<-sort(sample(nrow(dataframe3),nrow(dataframe3)*0.7))
+train_data1<-dataframe3[df,]
+test_data1<-dataframe3[-df,]
+```
+
+```{r,echo=TRUE}
+lmvalues<-lm(price~.,data=train_data1)
+summary(lmvalues)
+predict_lmvalues<-predict(lmvalues,test_data1[,-1])
+x = 1:length(test_data1[,1])
+plot(x, test_data1[,1], col = "red", type = "l", lwd=2, main = "Linear regression graph")
+lines(x, predict_lmvalues, col = "blue", lwd=2)
+legend("topright",  legend = c("original values", "predicted values"), fill = c("red", "blue"), col = 2:3,  adj = c(0, 0.6))
+grid()
+
+LR_MAPE_lm = MAPE(test_data1[,1],predict_lmvalues) 
+LR_R_lm = RSQUARE(test_data1[,1],predict_lmvalues) 
+Accuracy_lm = 100 - LR_MAPE_lm
+print("R-Square: ")
+print(LR_R_lm)
+print('Accuracy of Linear Regression: ')
+print(Accuracy_lm)
+```
+
+
+
+```{r,echo=TRUE}
+modelsvm = svm(price~.,train_data1)
+summary(modelsvm)
+predict_svmvalues = predict(modelsvm, test_data1[,-1])
+
+plot(x, test_data1[,1], col = "red", type = "l", lwd=2, main = "SVM model's algorithms")
+lines(x, predict_svmvalues, col = "blue", lwd=2)
+legend("topright",  legend = c("original values", "predicted values"), fill = c("red", "blue"), col = 2:3,  adj = c(0, 0.6))
+grid()
+
+LR_MAPE_svm = MAPE(test_data1[,1],predict_svmvalues) 
+LR_R_svm = RSQUARE(test_data1[,1],predict_svmvalues) 
+Accuracy_svm = 100 - LR_MAPE_svm
+print("R-Square: ")
+print(LR_R_svm)
+print('Accuracy of SVM: ')
+print(Accuracy_svm)
+```
+
+```{r,echo=TRUE}
+knnmodel = knnreg(train_data1[,-1],train_data1[,1])
+str(knnmodel)
+predict_knnvalues = predict(knnmodel, test_data1[,-1])
+mse = mean((test_data1[,1] - predict_knnvalues)^2)
+mae = caret::MAE(test_data1[,1], predict_knnvalues)
+rmse = caret::RMSE(test_data1[,1], predict_knnvalues)
+
+cat("MSE: ", mse, "MAE: ", mae, " RMSE: ", rmse)
+
+x = 1:length(test_data1[,1])
+
+plot(x, test_data1[,1], col = "red", type = "l", lwd=2, main = "knn algorithms")
+lines(x, predict_knnvalues, col = "blue", lwd=2)
+legend("topright",  legend = c("original values", "predicted values"), fill = c("red", "blue"), col = 2:3,  adj = c(0, 0.6))
+grid()
+
+LR_MAPE_knn = MAPE(test_data1[,1],predict_knnvalues) 
+LR_R_knn = RSQUARE(test_data1[,1],predict_knnvalues) 
+Accuracy_knn = 100 - LR_MAPE_knn
+print("R-Square: ")
+print(LR_R_knn)
+print('Accuracy of KNN: ')
+print(Accuracy_knn)
+```
+
+
+```{r,echo=TRUE}
+png(file = "decision_tree.png",width = 1000, height = 1000)
+dataframe4=dataframe3[1:100,]
+output.tree <- ctree(price ~., data = train_data1)
+plot(output.tree)
+dev.off()
+predict_dtreevalues<-predict(output.tree, test_data1[,-1])
+
+plot(x, test_data1[,1], col = "red", type = "l", lwd=2, main = "decision tree regression algorithms")
+lines(x, predict_dtreevalues, col = "blue", lwd=2)
+legend("topright",  legend = c("original values", "predicted values"), fill = c("red", "blue"), col = 2:3,  adj = c(0, 0.6))
+grid()
+
+LR_MAPE_dtree = MAPE(test_data1[,1],predict_dtreevalues) 
+LR_R_dtree = RSQUARE(test_data1[,1],predict_dtreevalues) 
+Accuracy_dtree = 100 - LR_MAPE_dtree
+print("R-Square: ")
+print(LR_R_dtree)
+print('Accuracy of Decision tree: ')
+print(Accuracy_dtree)
+```
+
+
+
+```{r,echo=TRUE}
+random_model <- randomForest(price~ ., data = train_data1, mtry = 3, importance = TRUE)
+png(file = "randomForestRegression.png")
+plot(random_model)
+dev.off()
+predict_rforestvalues<-predict(random_model,test_data1[,-1])
+
+plot(x, test_data1[,1], col = "red", type = "l", lwd=2, main = "random forest algorithms")
+lines(x, predict_rforestvalues, col = "blue", lwd=2)
+legend("topright",  legend = c("original values", "predicted values"), fill = c("red", "blue"), col = 2:3,  adj = c(0, 0.6))
+grid()
+
+LR_MAPE_rforest = MAPE(test_data1[,1],predict_rforestvalues) 
+LR_R_rforest = RSQUARE(test_data1[,1],predict_rforestvalues) 
+Accuracy_rforest = 100 - LR_MAPE_rforest
+print("R-Square: ")
+print(LR_R_rforest)
+print('Accuracy of random forest: ')
+print(Accuracy_rforest)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
